@@ -14,7 +14,9 @@ this one.
 
 ## Minimum Supported Rust Version (MSRV)
 
-The MSRV for *5.1* and newer releases of this crate is Rust **1.71**.
+The MSRV for the current development version of this crate is Rust **1.85**.
+
+The MSRV for *5.1.y* releases of this crate is Rust **1.71**.
 
 The MSRV for *5.0.y* releases of this crate is Rust **1.65**.
 
