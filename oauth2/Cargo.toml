@@ -28,6 +28,18 @@ name = "github"
 required-features = ["reqwest-blocking"]
 
 [[example]]
+name = "github_async"
+required-features = ["reqwest"]
+
+[[example]]
+name = "microsoft_devicecode_common_user"
+required-features = ["reqwest"]
+
+[[example]]
+name = "microsoft_devicecode_tenant_user"
+required-features = ["reqwest"]
+
+[[example]]
 name = "google"
 required-features = ["reqwest-blocking"]
 

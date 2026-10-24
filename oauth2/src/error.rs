@@ -108,7 +108,7 @@ where
 }
 
 /// Error encountered while requesting access token.
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error)]
 pub enum RequestTokenError<RE, T>
 where
     RE: Error + 'static,
@@ -134,9 +134,115 @@ where
     Other(String),
 }
 
+impl<RE, T> Debug for RequestTokenError<RE, T>
+where
+    RE: Error + 'static,
+    T: ErrorResponse + 'static,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ServerResponse(error) => f.debug_tuple("ServerResponse").field(error).finish(),
+            Self::Request(error) => f.debug_tuple("Request").field(error).finish(),
+            Self::Parse(error, _) => {
+                // Parser messages and paths can contain response values, including secrets.
+                // Keep only value-independent diagnostics; the original error and body remain
+                // available by matching the Parse variant.
+                f.debug_struct("Parse")
+                    .field("category", &error.inner().classify())
+                    .field("line", &error.inner().line())
+                    .field("column", &error.inner().column())
+                    .field("error", &"[REDACTED]")
+                    .field("body", &"[REDACTED]")
+                    .finish()
+            }
+            Self::Other(error) => f.debug_tuple("Other").field(error).finish(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::RequestTokenError;
     use crate::basic::{BasicErrorResponse, BasicErrorResponseType};
+    use crate::{EmptyExtraTokenFields, StandardTokenResponse, TokenType};
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+    #[serde(rename_all = "lowercase")]
+    enum TestTokenType {
+        Bearer,
+    }
+
+    impl TokenType for TestTokenType {}
+
+    fn assert_parse_debug_redacts(body: &[u8], secret: &str, path: &str) {
+        let parse_error = serde_path_to_error::deserialize::<
+            _,
+            StandardTokenResponse<EmptyExtraTokenFields, TestTokenType>,
+        >(&mut serde_json::Deserializer::from_slice(body))
+        .unwrap_err();
+        assert_eq!(parse_error.path().to_string(), path);
+        assert!(parse_error.inner().to_string().contains(secret));
+        let error: RequestTokenError<std::io::Error, BasicErrorResponse> =
+            RequestTokenError::Parse(parse_error, body.to_vec());
+
+        let ordinary = format!("{error:?}");
+        let pretty = format!("{error:#?}");
+        for debug in [ordinary, pretty] {
+            assert!(debug.contains("Parse"));
+            assert!(debug.contains("[REDACTED]"));
+            let compact_debug: String = debug.chars().filter(|c| !c.is_whitespace()).collect();
+            for sensitive in [
+                secret,
+                "access-token-debug-secret",
+                "refresh-token-debug-secret",
+            ] {
+                assert!(!debug.contains(sensitive));
+                let numeric_bytes = sensitive
+                    .as_bytes()
+                    .iter()
+                    .map(u8::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",");
+                assert!(!compact_debug.contains(&numeric_bytes));
+            }
+        }
+        assert!(std::error::Error::source(&error)
+            .unwrap()
+            .to_string()
+            .contains(secret));
+        match error {
+            RequestTokenError::Parse(parse_error, raw_body) => {
+                assert_eq!(raw_body, body);
+                assert_eq!(parse_error.path().to_string(), path);
+                assert!(parse_error.inner().to_string().contains(secret));
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn test_parse_debug_redacts_invalid_expires_in() {
+        assert_parse_debug_redacts(
+            br#"{"access_token":"access-token-debug-secret","refresh_token":"refresh-token-debug-secret","token_type":"bearer","expires_in":"expires-debug-secret"}"#,
+            "expires-debug-secret",
+            "expires_in",
+        );
+        assert_parse_debug_redacts(
+            br#"{"access_token":"access-token-debug-secret","refresh_token":"refresh-token-debug-secret","token_type":"bearer","expires_in":-93847561029}"#,
+            "-93847561029",
+            "expires_in",
+        );
+    }
+
+    #[test]
+    fn test_parse_debug_redacts_secret_enum_value() {
+        assert_parse_debug_redacts(
+            br#"{"access_token":"access-token-debug-secret","refresh_token":"refresh-token-debug-secret","token_type":"token-type-debug-secret"}"#,
+            "token-type-debug-secret",
+            "token_type",
+        );
+    }
 
     #[test]
     fn test_error_response_serializer() {

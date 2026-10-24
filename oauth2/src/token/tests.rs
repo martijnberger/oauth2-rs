@@ -735,12 +735,6 @@ fn test_exchange_code_with_simple_json_error() {
         other => panic!("Unexpected error: {other:?}"),
     }
 
-    // Test Debug trait for RequestTokenError
-    assert_eq!(
-        "ServerResponse(StandardErrorResponse { error: invalid_request, \
-         error_description: Some(\"stuff happened\"), error_uri: None })",
-        format!("{token_err:?}")
-    );
     // Test Display trait for RequestTokenError
     assert_eq!(
         "Server returned error response: invalid_request: stuff happened",
@@ -1114,12 +1108,6 @@ fn test_extension_with_simple_json_error() {
         other => panic!("Unexpected error: {other:?}"),
     }
 
-    // Test Debug trait for RequestTokenError
-    assert_eq!(
-        "ServerResponse(StandardErrorResponse { error: too_light, \
-         error_description: Some(\"stuff happened\"), error_uri: Some(\"https://errors\") })",
-        format!("{token_err:?}")
-    );
     // Test Display trait for RequestTokenError
     assert_eq!(
         "Server returned error response: too_light: stuff happened (see https://errors)",

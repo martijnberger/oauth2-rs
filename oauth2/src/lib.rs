@@ -34,7 +34,8 @@
 //! [SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
 //! vulnerabilities, be sure to configure the HTTP client **not to follow redirects**. For example,
 //! use [`redirect::Policy::none`](reqwest::redirect::Policy::none) when using
-//! [`reqwest`], or [`redirects(0)`](ureq::AgentBuilder::redirects) when using [`ureq`].
+//! [`reqwest`], or [`max_redirects(0)`](ureq::config::ConfigBuilder::max_redirects) on
+//! [`ureq::Agent::config_builder()`] when using [`ureq`].
 //!
 //! ## HTTP Clients
 //!

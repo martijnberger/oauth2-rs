@@ -139,8 +139,8 @@ traits, respectively, rather than a function type.
 vulnerabilities, be sure to configure the HTTP client **not to follow redirects**. For example, use
 > [`redirect::Policy::none`](https://docs.rs/reqwest/latest/reqwest/redirect/struct.Policy.html#method.none)
 > when using `reqwest`, or
-> [`redirects(0)`](https://docs.rs/ureq/latest/ureq/struct.AgentBuilder.html#method.redirects)
-> when using `ureq`.
+> [`max_redirects(0)`](https://docs.rs/ureq/latest/ureq/config/struct.ConfigBuilder.html#method.max_redirects)
+> on `ureq::Agent::config_builder()` when using `ureq` 3.
 
 The `AsyncHttpClient` trait is implemented for the following types:
 * `reqwest::Client` (when the default `reqwest` feature is enabled)
